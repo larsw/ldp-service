@@ -25,7 +25,6 @@
 import express, { type Express, Request, Response, NextFunction } from 'express'
 import rdflib from 'rdflib'
 import * as ldp from './vocab/ldp'
-import * as rdf from './vocab/rdf'
 import * as media from './media'
 import crypto from 'node:crypto'
 import { Env } from './env'
@@ -135,7 +134,11 @@ const ldpRoutes = (env: Env) => {
         'Content-Type': serialize,
       })
       if (includeBody) {
-        res.end(Buffer.from(content), 'utf-8')
+        if (content !== undefined) {
+          res.end(Buffer.from(content), 'utf-8')
+        } else {
+          res.end()
+        }
       } else {
         res.end()
       }
@@ -153,7 +156,7 @@ const ldpRoutes = (env: Env) => {
     get(req, res, false)
   })
 
-  const putUpdate = async (req: Request, res: Response, document: any, newTriples: any, serialize: string) => {
+  const putUpdate = async (req: Request, res: Response, documentUri: string, document: any, newTriples: any, serialize: string) => {
     // LDP servers should not support update of LDPCs
     if (
       document.interactionModel === ldp.BasicContainer ||
@@ -181,14 +184,13 @@ const ldpRoutes = (env: Env) => {
       return
     }
 
-    updateInteractionModel(newTriples)
+    updateInteractionModel(document.uri, newTriples)
     await db.update(newTriples)
     res.sendStatus(200)
   }
 
   const putCreate = async (req: Request, res: Response, document: any) => {
-    document.uri = req.fullURL
-    updateInteractionModel(document)
+    updateInteractionModel(req.fullURL!, document)
 
     // check if the client requested a specific interaction model through a
     // Link header.  if so, override what we found from the RDF content.
@@ -208,7 +210,7 @@ const ldpRoutes = (env: Env) => {
   }
 
   /*
-   * Imiplements the HTTP PUT method which requests that the enclosed entity be
+   * Implements the HTTP PUT method which requests that the enclosed entity be
    * stored under the supplied Request-URI. Uses putUpdate to update an existing
    * resource and putCreate to create a new one.
    */
@@ -219,18 +221,18 @@ const ldpRoutes = (env: Env) => {
     } else if (req.is(media.jsonld) || req.is(media.json)) {
       serialize = media.jsonld
     } else {
-      res.sendStatus(415)
+      res.sendStatus(415) // Unsupported Media Type
       return
     }
 
     const newTriples = new rdflib.IndexedFormula()
     try {
       await rdflib.parse(req.rawBody!, newTriples, req.fullURL!, serialize)
-      newTriples.uri = req.fullURL
+    //   newTriples.uri = req.fullURL
 
       try {
         const document = await db.read(req.fullURL!)
-        await putUpdate(req, res, document, newTriples, serialize)
+        await putUpdate(req, res, req.fullURL!, document, newTriples, serialize)
       } catch (err) {
         if (err === 404) {
           await putCreate(req, res, newTriples)
@@ -268,9 +270,8 @@ const ldpRoutes = (env: Env) => {
 
       const loc = await assignURI(req.fullURL!, req.get('Slug'))
       const newMember: rdflib.Formula = new rdflib.IndexedFormula()
-      newMember.uri = loc
       await rdflib.parse(req.rawBody!, newMember, loc, serialize)
-      updateInteractionModel(newMember)
+      updateInteractionModel(loc, newMember)
       addHeaders(req, res, newMember)
 
       // check if the client requested a specific interaction model through a Link header
@@ -376,10 +377,10 @@ const ldpRoutes = (env: Env) => {
 
   // look at the triples to determine the type of container if this is a
   // container and, if a direct container, its membership pattern
-  const updateInteractionModel = (document: any) => {
+  const updateInteractionModel = (uri: string, document: any) => {
     let interactionModel = ldp.RDFSource
 
-    const uriSym = document.sym(document.uri)
+    const uriSym = document.sym(uri)
     if (
       document.statementsMatching(uriSym, RDF('type'), ldp.BasicContainer)
         .length !== 0
@@ -516,7 +517,7 @@ const ldpRoutes = (env: Env) => {
   // - any special characters like / and ? in 'path' are replaced
   const addPath = (uri: string, path: string) => {
     uri = uri.split('?')[0].split('#')[0]
-    if (uri.substr(-1) !== '/') {
+    if (uri.slice(-1) !== '/') {
       uri += '/'
     }
 
