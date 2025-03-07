@@ -18,16 +18,9 @@
  * Media type constants.
  */
 
-function define(name, value) {
-    Object.defineProperty(exports, name, {
-        value:      value,
-        enumerable: true
-    })
-}
-
-define('turtle', 'text/turtle')
-define('text', 'text/plain')
-define('n3', 'text/n3')
-define('jsonld', 'application/ld+json')
-define('json', 'application/json')
-define('rdfxml', 'application/rdf+xml')
+export const turtle = 'text/turtle'
+export const text = 'text/plain'
+export const n3 = 'text/n3'
+export const jsonld = 'application/ld+json'
+export const json = 'application/json'
+export const rdfxml = 'application/rdf+xml'

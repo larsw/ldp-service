@@ -7,14 +7,23 @@
   "author": "Jim Amsden",
   "contributors": "Neil Davis",
   "dependencies": {
-    "express": "~4.16.4",
-    "rdflib": "^0.19.1"
-  },
-  "engines": {
-    "node": "~10.6.0"
+    "express": "5.0.1",
+    "rdflib": "2.2.37"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/OSLC/ldp-service.git"
+    "url": "https://github.com/larsw/ldp-service.git"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/rdflib": "^0.20.1",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.2"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "trailingComma": "all",
+    "tabWidth": 2,
+    "semi": false
   }
 }

@@ -19,8 +19,8 @@
  * accessing LDP resouces and displaying a graph of their links
  */
 
-var express = require('express')
-var ldpService = require('../../ldp-service')
+import express, { Request, Response, NextFunction } from 'express'
+import { ldapService } from '../../ldp-service'
 
 // define a simple environment for testing
 var env = {
@@ -40,9 +40,9 @@ app.use(express.static(__dirname + '/public'))
 app.use(ldpService(env))
 
 // error handling (developer centric)
-app.use(function(err, req, res, next){
+app.use(function(err: Error, _: Request, res: Response, __: NextFunction){
 	console.error(err.stack)
-	res.send(500, 'Something broke!')
+	res.sendStatus(500)
 })
 
 // Start server
